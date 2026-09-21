@@ -18,13 +18,13 @@ def serve_static(filename):
 @app.route('/api/orders', methods=['POST'])
 def add_order_api():
     if not request.data:
-        return jsonify({"error": "JSON body is required."}), 415
+        return handle_error_response("JSON body is required.", 415)
     data = request.get_json()
     if data.get("status") is None:
         data["status"] = "pending"
     valid, msg = validate_order(data)
     if not valid:
-        return jsonify({ "error": msg }), 400
+        return handle_error_response(msg, 400)
     try:
         order_tracker.add_order(
             data.get("order_id"), 
@@ -34,30 +34,30 @@ def add_order_api():
             data.get("status") or "pending"
         )
     except ValueError as e:   
-        return jsonify({"error": str(e)}), 409
+        return handle_error_response(str(e), 409) 
     return jsonify(data), 201
 
 @app.route('/api/orders/<string:order_id>', methods=['GET'])
 def get_order_api(order_id):
     order = order_tracker.get_order_by_id(order_id)
     if order is None:
-        return jsonify({ "error": f"Order not found (ID='{order_id}')."}), 404    
+        return handle_error_response(f"Order not found (ID='{order_id}').", 404)
     return jsonify(order), 200
 
 @app.route('/api/orders/<string:order_id>/status', methods=['PUT'])
 def update_order_status_api(order_id):
     if not request.data:
-        return jsonify({"error": "JSON body is required."}), 415
+        return handle_error_response("JSON body is required.", 415)
     json = request.get_json()
     if json is None:
-        return jsonify({"error": "JSON body is required."}), 415
+        return handle_error_response("JSON body is required.", 415)
     new_status = json.get("new_status") 
     is_valid, msg = is_valid_status(new_status, "new_status")
     if not is_valid:
-        return jsonify({ "error": msg}), 400
+        return handle_error_response(msg, 400)
     updated = order_tracker.update_order_status(order_id, new_status)
     if updated is None:
-        return jsonify({ "error": f"Order not found (ID='{order_id}')."}), 404    
+        return handle_error_response(f"Order not found (ID='{order_id}').", 404)
     return jsonify(updated), 200    
 
 @app.route('/api/orders', methods=['GET'])
@@ -72,6 +72,9 @@ def list_orders_api():
     else:
         orders = order_tracker.list_all_orders()
     return jsonify(orders), 200
+
+def handle_error_response(msg, status):
+    return jsonify({"error": msg}), status
 
 def validate_order(order):
     """
