@@ -1,11 +1,11 @@
 from flask import Flask, request, jsonify, send_from_directory
 from backend.order_tracker import OrderTracker
 from backend.in_memory_storage import InMemoryStorage
+from backend.validate import validate_order, is_valid_status
 
 app = Flask(__name__, static_folder='../frontend')
 in_memory_storage = InMemoryStorage()
 order_tracker = OrderTracker(in_memory_storage)
-VALID_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"]
 
 @app.route('/')
 def serve_index():
@@ -75,36 +75,6 @@ def list_orders_api():
 
 def handle_error_response(msg, status):
     return jsonify({"error": msg}), status
-
-def validate_order(order):
-    """
-    Validates the fields of an order:
-        "order_id": str,        # unique ID (non-empty)
-        "item_name": str,       # non-empty
-        "quantity": int,        # positive integer
-        "customer_id": str,     # non-empty
-        "status": str           # one of: "pending", "processing", "shipped", "delivered", "cancelled"
-    """
-    non_empty_string_fields = ["order_id", "item_name", "customer_id"]
-    for f in non_empty_string_fields:
-        if not is_non_empty_string(order[f]):
-            return False, f"'{f}' must be a non-empty string."
-    quantity = order["quantity"]
-    if not is_positive_integer(quantity):
-        return False, "'quantity' must be a positive integer."
-    valid_status, msg = is_valid_status(order["status"])
-    if not valid_status:
-        return False, msg
-    return True, ""
-    
-def is_non_empty_string(s):
-    return isinstance(s, str) and not s == ""
-
-def is_positive_integer(n):
-    return isinstance(n, int) and n > 0
-
-def is_valid_status(status, field_name = "status"):
-    return status in VALID_STATUSES, f'\'{field_name}\' must be one of these options: "pending", "processing", "shipped", "delivered", "cancelled"].'
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", debug=True)
