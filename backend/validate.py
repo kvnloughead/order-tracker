@@ -1,6 +1,7 @@
 # This file stores code for validating order data.
 
 VALID_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"]
+ALLOWED_FILTERS = ["status", "customer_id"]
 
 def validate_order(order):
     """
@@ -30,4 +31,18 @@ def is_positive_integer(n):
     return isinstance(n, int) and n > 0
 
 def is_valid_status(status, field_name = "status"):
-    return status in VALID_STATUSES, f'\'{field_name}\' must be one of these options: "pending", "processing", "shipped", "delivered", "cancelled"].'
+    return status in VALID_STATUSES, f'\'{field_name}\' must be one of these options: "pending", "processing", "shipped", "delivered", "cancelled".'
+
+def validate_filters(filters: dict):
+    for k, v in filters.items():
+        if k not in ALLOWED_FILTERS:
+            return False, { k: f"'{k}' is not an allowed filter."}
+        if k == "status":
+            is_valid, msg = is_valid_status(v, k)
+            if not is_valid:
+                return False, { "status": msg }
+        if k == "customer_id":
+            is_valid = is_non_empty_string(v)
+            if not is_valid:
+                return False, {"customer_id": "'customer_id' must be a non-empty string."} 
+    return True, {}

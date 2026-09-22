@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, send_from_directory
 from backend.order_tracker import OrderTracker
 from backend.in_memory_storage import InMemoryStorage
-from backend.validate import validate_order, is_valid_status
+from backend.validate import validate_order, is_valid_status, validate_filters
 
 app = Flask(__name__, static_folder='../frontend')
 in_memory_storage = InMemoryStorage()
@@ -62,18 +62,20 @@ def update_order_status_api(order_id):
 
 @app.route('/api/orders', methods=['GET'])
 def list_orders_api():
-    orders = {}
-    status = request.args.get('status')
-    if status is not None:
-        is_valid, msg = is_valid_status(status)
-        if not is_valid:
-            return jsonify({ "error": msg}), 400
-        orders = order_tracker.list_orders_by_status(status) 
+    if not request.args:
+        return order_tracker.list_all_orders(), 200
     else:
-        orders = order_tracker.list_all_orders()
-    return jsonify(orders), 200
+        valid, errors = validate_filters(request.args)
+        if not valid:
+            return handle_error_response(errors, 400)
+        orders = order_tracker.list_orders_with_filter(request.args)
+        return jsonify(orders), 200
 
-def handle_error_response(msg, status):
+def handle_error_response(msg: str, status: int):
+    """
+    Sends a response with the given error message and status code. The message 
+    is wrapped in an { "error" } object.
+    """
     return jsonify({"error": msg}), status
 
 if __name__ == '__main__':

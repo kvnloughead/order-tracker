@@ -105,7 +105,7 @@ def test_update_order_api_invalid_status(client):
     response_2 = client.put('/api/orders/UPDATE001/status', json={"new_status": "foobar"})
     for res in [response_1, response_2]:
         assert res.status_code == 400
-        assert res.json.get("error") == '\'new_status\' must be one of these options: "pending", "processing", "shipped", "delivered", "cancelled"].'
+        assert res.json.get("error") == '\'new_status\' must be one of these options: "pending", "processing", "shipped", "delivered", "cancelled".'
 
 @pytest.mark.api
 def test_list_all_orders_api_with_data(client):
@@ -116,7 +116,7 @@ def test_list_all_orders_api_with_data(client):
     assert len(response.json) == 2
 
 @pytest.mark.api
-def test_list_orders_by_status_api_matching(client):
+def test_list_orders_with_filter_api_matching(client):
     client.post('/api/orders', json={"order_id": "S001", "item_name": "A", "quantity": 1, "customer_id": "C1", "status": "pending"})
     client.post('/api/orders', json={"order_id": "S002", "item_name": "B", "quantity": 2, "customer_id": "C2", "status": "shipped"})
     response = client.get('/api/orders?status=pending')
@@ -125,12 +125,31 @@ def test_list_orders_by_status_api_matching(client):
     assert response.json[0]['order_id'] == "S001"
 
 @pytest.mark.api
-def test_list_orders_by_status_api_invalid_status(client):
+def test_list_orders_by_customer_id_api_matching(client):
+    client.post('/api/orders', json={"order_id": "S001", "item_name": "A", "quantity": 1, "customer_id": "C1", "status": "pending"})
+    client.post('/api/orders', json={"order_id": "S002", "item_name": "B", "quantity": 2, "customer_id": "C2", "status": "shipped"})
+    response = client.get('/api/orders?customer_id=C1')
+    assert response.status_code == 200
+    assert len(response.json) == 1
+    assert response.json[0]['order_id'] == "S001"
+
+@pytest.mark.api
+def test_list_orders_with_filter_api_invalid_status(client):
     response_1 = client.get('/api/orders?status=foobar')
     response_2 = client.get('/api/orders?status=')
     for res in [response_1, response_2]:
         assert res.status_code == 400
-        assert res.json.get("error") == '\'status\' must be one of these options: "pending", "processing", "shipped", "delivered", "cancelled"].'
+        errors = res.json.get("error")
+        assert errors["status"] == '\'status\' must be one of these options: "pending", "processing", "shipped", "delivered", "cancelled".'
+
+@pytest.mark.api
+def test_list_orders_with_filter_invalid_filter_key(client):
+    response_1 = client.get('/api/orders?foo=bar')
+    response_2 = client.get('/api/orders?foo=')
+    for res in [response_1, response_2]:
+        assert res.status_code == 400
+        errors = res.json.get("error")
+        assert errors["foo"] == "'foo' is not an allowed filter."
 
 @pytest.mark.api
 def test_missing_json_body(client):

@@ -1,6 +1,4 @@
-import pytest
-from backend.app import validate_order
-
+from backend.app import validate_order, validate_filters
 
 def test_validate_order_invalid_id():
     """Verifies that only non-empty strings are valid order IDs."""
@@ -75,4 +73,29 @@ def test_validate_order_validates_status_enum():
     }
     valid, msg = validate_order(order)
     assert valid == False
-    assert msg == '\'status\' must be one of these options: "pending", "processing", "shipped", "delivered", "cancelled"].'
+    assert msg == '\'status\' must be one of these options: "pending", "processing", "shipped", "delivered", "cancelled".'
+
+def test_validate_filters_valid_filters():
+    filters = { "customer_id": "CUST001", "status": "pending"}
+    valid, error = validate_filters(filters)
+    assert valid == True
+    assert error == {}
+
+def test_validate_filters_unknown_filter():
+    filters = { "customer_id": "CUST001", "foobar": "baz"}
+    valid, error = validate_filters(filters)
+    assert valid == False
+    assert error == {"foobar": "'foobar' is not an allowed filter."}
+
+def test_validate_filters_invalid_status():
+    filters = { "customer_id": "CUST001", "status": "..."}
+    valid, error = validate_filters(filters)
+    assert valid == False
+    # assert error == {"status": '\'status\' must be one of these options: "pending", "processing", "shipped", "delivered", "cancelled".' }
+    assert error["status"] == '\'status\' must be one of these options: "pending", "processing", "shipped", "delivered", "cancelled".'
+
+def test_validate_filters_invalid_customer_id():
+    filters = { "customer_id": ""}
+    valid, error = validate_filters(filters)
+    assert valid == False
+    assert error == {"customer_id": "'customer_id' must be a non-empty string."}

@@ -1,6 +1,7 @@
-import pytest
+import pytest, re
 from unittest.mock import Mock
 from ..order_tracker import OrderTracker
+from ..validate import ALLOWED_FILTERS
 
 # --- Fixtures for Unit Tests ---
 ORDER_ID_EXISTING = "ORD_EXISTING"
@@ -93,12 +94,31 @@ def test_list_all_orders(order_tracker, mock_storage):
     assert orders[1]["order_id"] == "ORD001"
     assert orders[0]["item_name"] == "Item"
 
-def test_list_orders_by_status(order_tracker, mock_storage):
+def test_list_orders_with_filter_by_status(order_tracker):
     order_tracker.add_order("ORD_COMPLETED", "Laptop", 1, "CUST001", "completed")
-    completed_orders = order_tracker.list_orders_by_status("completed")
+    completed_orders = order_tracker.list_orders_with_filter({"status": "completed"})
     assert len(completed_orders) == 1
     assert completed_orders[0]["order_id"] == "ORD_COMPLETED"
 
-def test_list_orders_by_status_empty(order_tracker, mock_storage):
-    orders = order_tracker.list_orders_by_status("completed")
-    assert len(orders) == 0 
+def test_list_orders_with_filter_by_customer_id(order_tracker):
+    order_tracker.add_order("ORD_C2", "Laptop", 1, "CUST002", "completed")
+    c2_orders = order_tracker.list_orders_with_filter({"customer_id": "CUST002"})
+    assert len(c2_orders) == 1
+    assert c2_orders[0]["order_id"] == "ORD_C2"
+
+def test_list_orders_with_filter_by_customer_id_and_status(order_tracker):
+    order_tracker.add_order("ORD_C2_pending", "Laptop", 1, "CUST002", "pending")
+    order_tracker.add_order("ORD_C2_completed", "Laptop", 1, "CUST002", "completed")
+    c2_orders = order_tracker.list_orders_with_filter({"customer_id": "CUST002", "status": "completed"})
+    assert len(c2_orders) == 1
+    assert c2_orders[0]["order_id"] == "ORD_C2_completed"
+
+def test_list_orders_with_filter_and_bad_filter(order_tracker):
+    order_tracker.add_order("ORD_C2_pending", "Laptop", 1, "CUST002", "pending")
+    order_tracker.add_order("ORD_C2_completed", "Laptop", 1, "CUST002", "completed")
+    result = order_tracker.list_orders_with_filter({"foobar": "baz", "status": "completed"})
+    assert len(result) == 0
+
+def test_list_orders_with_filter_empty(order_tracker):
+    orders = order_tracker.list_orders_with_filter({"status": "completed"})
+    assert len(orders) == 0

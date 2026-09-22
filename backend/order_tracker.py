@@ -39,5 +39,13 @@ class OrderTracker:
     def list_all_orders(self):
         return list(self.storage.get_all_orders().values())
 
-    def list_orders_by_status(self, status: str):
-        return list(filter(lambda item: item["status"] == status, self.list_all_orders()))
+    def list_orders_with_filter(self, filters: dict):
+        """Returns a list of orders with keys matching the provided filters. 
+        Filter validation should be performed before calling this function. Returns an empty array if any filters are unknown."""
+        orders = self.list_all_orders()
+        try:
+            for f, value in filters.items():
+                orders = list(filter(lambda item: item[f] == value, orders))
+        except KeyError:
+            return []
+        return orders
