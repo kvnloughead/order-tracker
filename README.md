@@ -8,6 +8,15 @@ One quirk I ran into was when trying to test a missing JSON body. I was going to
 
 If I were continuing this project, my next step would be to support deleting orders, so the full CRUD is available. Switching from in-memory storage to SQL would be the logical next step.
 
+## Additional features
+
+I implemented some of the additional features that were suggested, including an error handler, filters for `GET /api/orders`, and OpenAPI documentation in the project root. The `Makefile` contains a few helpful targets:
+
+- `setup`: starts a virtual environment and installs dependencies
+- `run`: runs the app
+- `test/fast`: runs all fast tests (excluding API tests)
+- `test/all`: runs all tests
+
 ## File structure
 
 The initial structure of directories and files is described below.
